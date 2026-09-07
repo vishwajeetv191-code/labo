@@ -1,0 +1,154 @@
+#include <iostream>
+#include <fstream>
+#include <cstring>
+#include <stdexcept>
+
+using namespace std;
+
+class Member
+{
+private:
+    int memberID;
+    char memberName[50];
+    int booksIssued;
+    double annualFee;
+
+public:
+    Member()
+    {
+        memberID = 0;
+        strcpy(memberName, "");
+        booksIssued = 0;
+        annualFee = 0;
+    }
+
+    void accept()
+    {
+        cout << "\nEnter Member ID: ";
+        cin >> memberID;
+
+        if (memberID <= 0)
+            throw invalid_argument("Member ID must be positive.");
+
+        cout << "Enter Member Name: ";
+        cin.ignore();
+        cin.getline(memberName, 50);
+
+        cout << "Enter Number of Books Issued: ";
+        cin >> booksIssued;
+
+        if (booksIssued < 0 || booksIssued > 8)
+            throw invalid_argument(
+                "Number of books issued must be between 0 and 8."
+            );
+
+        cout << "Enter Annual Membership Fee: ";
+        cin >> annualFee;
+
+        if (annualFee < 500 || annualFee > 5000)
+            throw invalid_argument(
+                "Annual membership fee must be between Rs. 500 and Rs. 5000."
+            );
+    }
+
+    void display() const
+    {
+        cout << "\n-----------------------------";
+        cout << "\nMember ID              : " << memberID;
+        cout << "\nMember Name            : " << memberName;
+        cout << "\nBooks Issued           : " << booksIssued;
+        cout << "\nAnnual Membership Fee  : Rs. " << annualFee;
+
+        cout << "\nMembership Status      : ";
+
+        if (annualFee >= 500)
+            cout << "Active";
+        else
+            cout << "Inactive";
+
+        cout << "\n-----------------------------\n";
+    }
+};
+
+
+int main()
+{
+    int n;
+
+    cout << "Enter the total number of members: ";
+    cin >> n;
+
+    // Array of pointers
+    Member** members = new Member*[n];
+
+    for (int i = 0; i < n; i++)
+    {
+        members[i] = new Member();
+
+        try
+        {
+            cout << "\nEnter details for Member " << i + 1 << endl;
+
+            members[i]->accept();
+        }
+        catch (exception& e)
+        {
+            cout << "Error: " << e.what() << endl;
+
+            // Repeat input until valid
+            i--;
+            delete members[i + 1];
+            continue;
+        }
+    }
+
+    // Write objects into binary file
+    ofstream fout("members.dat", ios::binary);
+
+    if (!fout)
+    {
+        cout << "Error opening file for writing." << endl;
+        return 1;
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        fout.write((char*)members[i], sizeof(Member));
+    }
+
+    fout.close();
+
+    cout << "\nMember records saved successfully.\n";
+
+
+    // Delete objects from memory
+    for (int i = 0; i < n; i++)
+    {
+        delete members[i];
+    }
+
+    delete[] members;
+
+
+    // Read records again from binary file
+    ifstream fin("members.dat", ios::binary);
+
+    if (!fin)
+    {
+        cout << "Error opening file for reading." << endl;
+        return 1;
+    }
+
+    cout << "\n===== MEMBER RECORDS FROM FILE =====\n";
+
+    Member temp;
+
+    while (fin.read((char*)&temp, sizeof(Member)))
+    {
+        temp.display();
+    }
+
+    fin.close();
+
+    return 0;
+}
